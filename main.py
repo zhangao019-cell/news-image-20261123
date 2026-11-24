@@ -14,8 +14,14 @@ from pathlib import Path
 here = Path(__file__).resolve().parent
 out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
 out_dir.mkdir(parents=True, exist_ok=True)
-b64 = (here / "entry.png.b64.0").read_text().strip()
-b64 += (here / "entry.png.b64.1").read_text().strip()
-data = base64.b64decode(b64)
+parts = []
+for name in ("entry.png.b64.0", "entry.png.b64.1"):
+    path = here / name
+    if not path.exists():
+        raise SystemExit(f"missing part {name}: the entry image is incomplete")
+    parts.append(path.read_text().strip())
+data = base64.b64decode("".join(parts))
+if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+    raise SystemExit("decoded image is not a PNG: the base64 parts may be corrupted")
 (out_dir / "entry.png").write_bytes(data)
-print(f"wrote {out_dir / 'entry.png'}")
+print(f"wrote {out_dir / 'entry.png'} ({len(data)} bytes)")
